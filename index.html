@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snakes & Ladders</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ── Animated particle canvas ── -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- ── Background decorative blobs ── -->
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-blob blob-3"></div>
+
+  <div class="app-wrapper">
+
+    <!-- ══ HEADER ══ -->
+    <header class="game-header">
+      <div class="header-icon">🐍</div>
+      <div class="header-text">
+        <h1>Snakes <span>&amp;</span> Ladders</h1>
+        <p class="subtitle">Roll the dice. Climb the ladders. Dodge the snakes!</p>
+      </div>
+      <div class="header-icon">🪜</div>
+    </header>
+
+    <!-- ══ MAIN LAYOUT ══ -->
+    <main class="game-layout">
+
+      <!-- ── LEFT PANEL: controls + stats ── -->
+      <aside class="side-panel left-panel">
+
+        <!-- Dice display -->
+        <div class="card dice-card">
+          <div class="card-label">Last Roll</div>
+          <div class="dice-face" id="dice-display">🎲</div>
+          <div class="dice-number" id="dice-number">–</div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="card controls-card">
+          <button class="btn btn-roll" id="roll-btn" onclick="rollDice()">
+            <span class="btn-icon">🎲</span> Roll Dice
+          </button>
+          <button class="btn btn-reset" onclick="resetGame()">
+            <span class="btn-icon">🔄</span> New Game
+          </button>
+          <button class="btn btn-bfs" onclick="fetchMinRolls()">
+            <span class="btn-icon">🧮</span> Min Rolls (BFS)
+          </button>
+          <button class="btn btn-sound" id="sound-btn" onclick="toggleSound()">
+            <span class="btn-icon">🔊</span> Sound: On
+          </button>
+        </div>
+
+        <!-- Streak tracker -->
+        <div class="card streak-card">
+          <div class="card-label">🔥 Hot Streak</div>
+          <div class="streak-display">
+            <span class="streak-count" id="streak-count">0</span>
+            <span class="streak-label">ladder streak</span>
+          </div>
+          <div class="streak-bar-wrap"><div class="streak-bar" id="streak-bar"></div></div>
+        </div>
+
+        <!-- Status message -->
+        <div class="card status-card">
+          <div class="card-label">Game Status</div>
+          <div class="status-message" id="status-message">Press Roll to start!</div>
+        </div>
+
+        <!-- Stats -->
+        <div class="card stats-card">
+          <div class="card-label">Statistics</div>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-icon">🎲</span>
+              <span class="stat-value" id="stat-rolls">0</span>
+              <span class="stat-name">Rolls</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-icon">🐍</span>
+              <span class="stat-value" id="stat-snakes">0</span>
+              <span class="stat-name">Snakes</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-icon">🪜</span>
+              <span class="stat-value" id="stat-ladders">0</span>
+              <span class="stat-name">Ladders</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-icon">📍</span>
+              <span class="stat-value" id="stat-position">0</span>
+              <span class="stat-name">Position</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- ── CENTER: game board ── -->
+      <section class="board-section">
+        <div class="board-container">
+          <div class="board" id="board"></div>
+          <!-- SVG overlay for snake/ladder lines -->
+          <svg class="board-svg" id="board-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </section>
+
+      <!-- ── RIGHT PANEL: legend + BFS ── -->
+      <aside class="side-panel right-panel">
+
+        <!-- Legend -->
+        <div class="card legend-card">
+          <div class="card-label">Legend</div>
+          <div class="legend-list">
+            <div class="legend-item">
+              <span class="legend-dot player-dot"></span>
+              <span>Your Player</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot snake-dot"></span>
+              <span>Snake Head</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot ladder-dot"></span>
+              <span>Ladder Bottom</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot normal-dot"></span>
+              <span>Normal Cell</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Snakes reference -->
+        <div class="card reference-card">
+          <div class="card-label">🐍 Snakes</div>
+          <div class="reference-list" id="snake-list"></div>
+        </div>
+
+        <!-- Ladders reference -->
+        <div class="card reference-card">
+          <div class="card-label">🪜 Ladders</div>
+          <div class="reference-list" id="ladder-list"></div>
+        </div>
+
+
+        <div class="card bfs-card" id="bfs-card" style="display:none">
+          <div class="card-label">🧮 BFS Result</div>
+          <div class="bfs-result" id="bfs-result"></div>
+        </div>
+
+        <!-- Move History -->
+        <div class="card history-card">
+          <div class="card-label-row">
+            <span class="card-label" style="margin-bottom:0">📜 Move History</span>
+            <button class="btn-tiny" onclick="clearHistory()" title="Clear history">✕</button>
+          </div>
+          <div class="history-list" id="history-list">
+            <div class="history-empty">No moves yet</div>
+          </div>
+        </div>
+
+      </aside>
+
+    </main>
+
+    <!-- ══ WIN MODAL ══ -->
+    <div class="modal-overlay" id="win-modal">
+      <div class="modal-box">
+        <div class="modal-confetti" id="confetti-container"></div>
+        <div class="modal-emoji">🏆</div>
+        <h2 class="modal-title">You Win!</h2>
+        <p class="modal-subtitle" id="win-message"></p>
+        <button class="btn btn-roll modal-btn" onclick="resetGame()">
+          <span class="btn-icon">🔄</span> Play Again
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /app-wrapper -->
+
+  <script src="script.js"></script>
+</body>
+</html>
